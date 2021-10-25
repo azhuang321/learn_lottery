@@ -14,7 +14,7 @@ func TestMVC(t *testing.T) {
 	var wg sync.WaitGroup
 	e.GET("/").Expect().Status(httptest.StatusOK).Body().Equal("当前总共参加抽奖人数: 0\n")
 
-	for i := 0; i < 100; i++ {
+	for i := 1; i <= 100; i++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
@@ -24,6 +24,6 @@ func TestMVC(t *testing.T) {
 	wg.Wait()
 
 	e.GET("/").Expect().Status(httptest.StatusOK).Body().Equal("当前总共参加抽奖人数: 100\n")
-	e.GET("/").Expect().Status(httptest.StatusOK)
+	e.GET("/lucky").Expect().Status(httptest.StatusOK)
 	e.GET("/").Expect().Status(httptest.StatusOK).Body().Equal("当前总共参加抽奖人数: 99\n")
 }

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/kataras/iris/v12"
@@ -17,6 +18,8 @@ import (
 )
 
 var userList []string
+
+var mux sync.RWMutex
 
 type lotteryController struct {
 	Ctx iris.Context
@@ -36,7 +39,9 @@ func main() {
 }
 
 func (c *lotteryController) Get() string {
+	mux.RLock()
 	count := len(userList)
+	mux.RUnlock()
 	return fmt.Sprintf("当前总共参加抽奖人数: %d\n", count)
 }
 
@@ -49,7 +54,9 @@ func (c *lotteryController) PostImport() string {
 	for _, v := range users {
 		v = strings.TrimSpace(v)
 		if len(v) > 0 {
+			mux.Lock()
 			userList = append(userList, v)
+			mux.Unlock()
 		}
 	}
 	count2 := len(userList)
@@ -65,11 +72,15 @@ func (c *lotteryController) GetLucky() string {
 		return fmt.Sprintf("已经没有用户参与抽奖,请先通过 /import 导入用户 \n")
 	}
 	if count == 1 {
+		mux.RLock()
 		user = userList[0]
+		mux.RUnlock()
 	} else {
 		seed := time.Now().UnixNano()
 		index := rand.New(rand.NewSource(seed)).Int31n(int32(count))
+		mux.RLock()
 		user = userList[index]
+		mux.RUnlock()
 		userList = append(userList[0:index], userList[index+1:]...)
 	}
 	return fmt.Sprintf("当前中奖用户: %s ,剩余用户数: %d \n", user, count-1)
