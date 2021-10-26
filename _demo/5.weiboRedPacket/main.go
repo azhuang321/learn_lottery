@@ -1,3 +1,11 @@
+/**
+ * 设置红包
+ * curl "http://localhost:8080/set?uid=1&money=28.88&num=19"
+ * 抢红包
+ * curl "http://localhost:8080/get?uid=1&id=1"
+ * 并发测试
+ * wrk -t10 -c10 -d5 "http://localhost:8080/set?uid=1&money=28.88&num=19"
+ */
 package main
 
 import (
@@ -5,10 +13,11 @@ import (
 	"github.com/kataras/iris/v12"
 	"github.com/kataras/iris/v12/mvc"
 	"math/rand"
+	"sync"
 	"time"
 )
 
-var packageList map[uint32][]uint = make(map[uint32][]uint)
+var packageList *sync.Map = new(sync.Map)
 
 type lotteryController struct {
 	Ctx iris.Context
@@ -27,13 +36,16 @@ func main() {
 
 func (c *lotteryController) Get() map[uint32][2]int {
 	rs := make(map[uint32][2]int)
-	for id, list := range packageList {
+
+	packageList.Range(func(id, list interface{}) bool {
 		var money int
-		for _, v := range list {
+		for _, v := range list.([]uint) {
 			money += int(v)
 		}
-		rs[id] = [2]int{len(list), money}
-	}
+		rs[id.(uint32)] = [2]int{len(list.([]uint)), money}
+		return true
+	})
+
 	return rs
 }
 
@@ -86,7 +98,7 @@ func (c *lotteryController) GetSet() string {
 	}
 	// 红包唯一ID
 	id := r.Uint32()
-	packageList[id] = list
+	packageList.Store(id, list)
 	// 返回抢红包的地址
 	return fmt.Sprintf("/get?id=%d&uid=%d&num=%d", id, uid, num)
 }
@@ -102,7 +114,9 @@ func (c *lotteryController) GetGet() string {
 	if uid < 1 || id < 1 {
 		return fmt.Sprintf("参数异常,uid=%d,id=%d\n", uid, id)
 	}
-	list, ok := packageList[uint32(id)]
+
+	listI, ok := packageList.Load(uint32(id))
+	list := listI.([]uint)
 	if !ok || len(list) < 1 {
 		return fmt.Sprintf("红包不存在:%d", id)
 	}
@@ -113,14 +127,14 @@ func (c *lotteryController) GetGet() string {
 	// 更新红包列表中的信息
 	if len(list) > 1 {
 		if i == len(list)-1 {
-			packageList[uint32(id)] = list[:i]
+			packageList.Store(uint32(id), list[:i])
 		} else if i == 0 {
-			packageList[uint32(id)] = list[1:]
+			packageList.Store(uint32(id), list[1:])
 		} else {
-			packageList[uint32(id)] = append(list[0:i], list[i+1:]...)
+			packageList.Store(uint32(id), append(list[0:i], list[i+1:]...))
 		}
 	} else {
-		delete(packageList, uint32(id))
+		packageList.Delete(uint32(id))
 	}
 	return fmt.Sprintf("恭喜你,抢到 `%d` 的红包", money)
 }
