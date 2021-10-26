@@ -2,6 +2,8 @@
  * 微信摇一摇
  * 基础功能:
  * http://localhost:8080/lucky 只有一个抽奖的接口
+ * 压力测试:
+ * wrk -t10 -c10 -d5 http://localhost:8080/lucky (-t:线程数 -c:连接数 -d:持续时间)
  */
 package main
 
@@ -12,6 +14,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -44,6 +47,7 @@ type gift struct {
 const rateMax = 10000
 
 var logger *log.Logger
+var mux sync.Mutex
 
 // 奖品列表
 var giftList []*gift
@@ -69,10 +73,10 @@ func initGift() {
 		gType:    giftTypeRealLarge,
 		data:     "",
 		dataList: nil,
-		total:    2,
-		left:     2,
+		total:    20000,
+		left:     20000,
 		inUse:    true,
-		rate:     1,
+		rate:     10000,
 		rateMin:  0,
 		rateMax:  0,
 	}
@@ -86,7 +90,7 @@ func initGift() {
 		dataList: nil,
 		total:    5,
 		left:     5,
-		inUse:    true,
+		inUse:    false,
 		rate:     10,
 		rateMin:  0,
 		rateMax:  0,
@@ -101,7 +105,7 @@ func initGift() {
 		dataList: nil,
 		total:    50,
 		left:     50,
-		inUse:    true,
+		inUse:    false,
 		rate:     500,
 		rateMin:  0,
 		rateMax:  0,
@@ -116,7 +120,7 @@ func initGift() {
 		dataList: []string{"c01", "c02", "c03", "c04", "c05", "c06", "c07", "c08", "c09", "c10"},
 		total:    10,
 		left:     10,
-		inUse:    true,
+		inUse:    false,
 		rate:     100,
 		rateMin:  0,
 		rateMax:  0,
@@ -131,7 +135,7 @@ func initGift() {
 		dataList: nil,
 		total:    5,
 		left:     5,
-		inUse:    true,
+		inUse:    false,
 		rate:     5000,
 		rateMin:  0,
 		rateMax:  0,
@@ -185,8 +189,9 @@ func (c *lotteryController) Get() string {
 
 // 抽奖 http://localhost:8080/lucky
 func (c *lotteryController) GetLucky() map[string]interface{} {
+	mux.Lock()
+	defer mux.Unlock()
 	code := luckyCode()
-	fmt.Println(code)
 
 	ok := false
 	result := make(map[string]interface{})
