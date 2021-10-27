@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/kataras/iris/v12"
@@ -12,11 +13,11 @@ import (
 
 // 奖品中奖概率
 type Prate struct {
-	Rate  int //万分之N的中奖概率
-	Total int //总数量  0表示无限
-	CodeA int //中奖概率起始编码(包含)
-	CodeB int //中奖概率终止编码(包含)
-	Left  int //剩余数
+	Rate  int    //万分之N的中奖概率
+	Total int    //总数量  0表示无限
+	CodeA int    //中奖概率起始编码(包含)
+	CodeB int    //中奖概率终止编码(包含)
+	Left  *int32 //剩余数
 }
 
 // 奖品列表
@@ -28,9 +29,9 @@ var prizeList []string = []string{
 }
 
 // 中奖的概率设置,与上面的prizeList 对应的设置
-
+var left int32 = 1000
 var rateList []Prate = []Prate{
-	{100, 1000, 0, 9999, 1000},
+	{100, 1000, 0, 9999, &left},
 	//{2, 2, 1, 2, 2},
 	//{5, 10, 3, 5, 10},
 	//{100, 0, 0, 9999, 0},
@@ -86,12 +87,13 @@ func (c *lotteryController) GetPrize() string {
 	// 第二部 中奖了,开始发奖
 	if prizeRate.Total == 0 {
 		return myPrize
-	} else if prizeRate.Left > 0 {
-		prizeRate.Left -= 1
-		return myPrize
-	} else {
-		myPrize = "未中奖"
-		return myPrize
+	} else if *prizeRate.Left > 0 {
+		left := atomic.AddInt32(prizeRate.Left, -1)
+		if left >= 0 {
+			return myPrize
+		}
 	}
+	myPrize = "未中奖"
+	return myPrize
 
 }
