@@ -4,7 +4,7 @@
  * 抢红包
  * curl "http://localhost:8080/get?uid=1&id=1"
  * 并发测试
- * wrk -t10 -c10 -d5 "http://localhost:8080/set?uid=1&money=28.88&num=19"
+ * wrk -t10 -c10 -d5 "http://localhost:8080/get?uid=1&id=2272017440"
  */
 package main
 
@@ -24,7 +24,10 @@ type task struct {
 }
 
 var packageList *sync.Map = new(sync.Map)
-var chTasks chan task = make(chan task)
+
+const taskNum = 16
+
+var chTaskList []chan task = make([]chan task, taskNum)
 
 type lotteryController struct {
 	Ctx iris.Context
@@ -33,8 +36,10 @@ type lotteryController struct {
 func newApp() *iris.Application {
 	app := iris.New()
 	mvc.New(app.Party("/")).Handle(&lotteryController{})
-
-	go fetchPackageListMoney()
+	for i := 0; i < 16; i++ {
+		chTaskList[i] = make(chan task)
+		go fetchPackageListMoney(chTaskList[i])
+	}
 
 	return app
 }
@@ -117,7 +122,7 @@ func (c *lotteryController) GetSet() string {
 // http://localhost:8080/get?uid=1&id=1
 func (c *lotteryController) GetGet() string {
 	uid, errUid := c.Ctx.URLParamInt("uid")
-	id, errId := c.Ctx.URLParamInt("num")
+	id, errId := c.Ctx.URLParamInt("id")
 	if errUid != nil || errId != nil {
 		return fmt.Sprintf("参数异常,errUid=%d,errId=%d\n", uid, id)
 	}
@@ -134,6 +139,7 @@ func (c *lotteryController) GetGet() string {
 	callback := make(chan uint)
 	t := task{id: uint32(id), callback: callback}
 	// 发送任务
+	chTasks := chTaskList[id%taskNum]
 	chTasks <- t
 	// 接受返回任务结果
 	money := <-callback
@@ -144,7 +150,7 @@ func (c *lotteryController) GetGet() string {
 	}
 }
 
-func fetchPackageListMoney() {
+func fetchPackageListMoney(chTasks chan task) {
 	for {
 		t := <-chTasks
 		id := t.id
