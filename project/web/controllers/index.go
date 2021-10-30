@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"fmt"
+	"lottery/comm"
 	"lottery/models"
 	"lottery/services"
 
@@ -47,4 +49,21 @@ func (c *IndexController) GetNewprize() map[string]interface{} {
 	rs["msg"] = ""
 
 	return rs
+}
+
+func (c *IndexController) GetLogin() {
+	uid := comm.Random(100000)
+	loginUser := &models.ObjLoginuser{
+		Uid:      uid,
+		Username: fmt.Sprintf("admin-%d", uid),
+		Now:      comm.NowUnix(),
+		Ip:       comm.ClientIp(c.Ctx.Request()),
+	}
+	comm.SetLoginUser(c.Ctx.ResponseWriter(), loginUser)
+	comm.Redirect(c.Ctx.ResponseWriter(), "/public/index.html?from=login")
+}
+
+func (c *IndexController) GetLogout() {
+	comm.SetLoginUser(c.Ctx.ResponseWriter(), nil)
+	comm.Redirect(c.Ctx.ResponseWriter(), "/public/index.html?from=logout")
 }
