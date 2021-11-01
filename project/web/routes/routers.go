@@ -38,4 +38,9 @@ func Configure(b *bootstrap.Bootstrapper) {
 		blackipService,
 	)
 	admin.Handle(new(controllers.AdminController))
+
+	adminGift := admin.Party("/gift")
+	adminGift.Register(giftService)
+	adminGift.Handle(new(controllers.AdminGiftController))
+
 }
