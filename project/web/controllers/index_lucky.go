@@ -1,8 +1,10 @@
 package controllers
 
 import (
+	"fmt"
 	"lottery/comm"
 	"lottery/conf"
+	"lottery/models"
 	"lottery/web/utils"
 )
 
@@ -41,5 +43,25 @@ func (c *IndexController) GetLucky() map[string]interface{} {
 		return rs
 	}
 	// 5.验证IP黑名单
-
+	limitBlack := false
+	if ipDayNum > conf.IpPrizeMax {
+		limitBlack = true
+	}
+	var blackIpInfo *models.LtBlackip
+	if !limitBlack {
+		ok, blackIpInfo = c.checkBlackIp(ipStr)
+		if !ok {
+			fmt.Println("黑名单中的IP", ipStr, limitBlack)
+			limitBlack = true
+		}
+	}
+	// 6.验证黑名单用户
+	var userInfo *models.LtUser
+	if !limitBlack {
+		ok, userInfo = c.checkBlackUser(loginUser.Uid)
+		if !ok {
+			fmt.Println("黑名单中的用户", loginUser.Uid, limitBlack)
+			limitBlack = true
+		}
+	}
 }
