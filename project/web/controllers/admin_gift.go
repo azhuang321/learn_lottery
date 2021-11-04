@@ -24,7 +24,7 @@ type AdminGiftController struct {
 }
 
 func (c *AdminGiftController) Get() mvc.Result {
-	dataList := c.ServiceGift.GetAll(false)
+	dataList := c.ServiceGift.GetAll(true)
 	total := len(dataList)
 	for i, giftInfo := range dataList {
 		//奖品发放的计划数据
@@ -62,7 +62,7 @@ func (c *AdminGiftController) GetEdit() mvc.Result {
 	id := c.Ctx.URLParamIntDefault("id", 0)
 	giftInfo := viewmodels.ViewGift{}
 	if id > 0 {
-		data := c.ServiceGift.Get(id, false)
+		data := c.ServiceGift.Get(id, true)
 		giftInfo.Id = data.Id
 		giftInfo.Title = data.Title
 		giftInfo.PrizeNum = data.PrizeNum
@@ -117,7 +117,7 @@ func (c *AdminGiftController) PostSave() mvc.Result {
 
 	if giftInfo.Id > 0 {
 		//更新
-		dataInfo := c.ServiceGift.Get(giftInfo.Id, false)
+		dataInfo := c.ServiceGift.Get(giftInfo.Id, true)
 		if dataInfo != nil && dataInfo.Id > 0 {
 			//奖品数量发生变化
 			giftInfo.LeftNum = dataInfo.LeftNum - dataInfo.PrizeNum - giftInfo.PrizeNum
