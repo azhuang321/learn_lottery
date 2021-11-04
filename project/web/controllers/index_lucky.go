@@ -29,11 +29,18 @@ func (c *IndexController) GetLucky() map[string]interface{} {
 	}
 	defer utils.UnLockLucky(loginUser.Uid)
 	// 3.验证用户今日参与次数
-	ok = c.checkUserDay(loginUser.Uid)
-	if !ok {
+	userDayNum := utils.IncrUserLuckyNum(loginUser.Uid)
+	if userDayNum > conf.UserPrizeMax {
 		rs["code"] = 103
 		rs["msg"] = "今日抽奖次数已用完,明日再来吧"
 		return rs
+	} else {
+		ok = c.checkUserDay(loginUser.Uid, userDayNum)
+		if !ok {
+			rs["code"] = 103
+			rs["msg"] = "今日抽奖次数已用完,明日再来吧"
+			return rs
+		}
 	}
 	// 4.验证今日的参与次数
 	ipStr := comm.ClientIp(c.Ctx.Request())
