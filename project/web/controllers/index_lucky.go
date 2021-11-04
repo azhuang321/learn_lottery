@@ -83,6 +83,11 @@ func (c *IndexController) GetLucky() map[string]interface{} {
 	}
 	// 9.有限制奖品发放
 	if prizeGift.PrizeNum > 0 {
+		if utils.GetGiftPoolNum(prizeGift.Id) <= 0 {
+			rs["code"] = 206
+			rs["msg"] = "很遗憾,没有中奖,请下次再试"
+			return rs
+		}
 		ok = utils.PrizeGift(prizeGift.Id, prizeGift.LeftNum)
 		if !ok {
 			rs["code"] = 207
