@@ -25,7 +25,7 @@ type AdminGiftController struct {
 }
 
 func (c *AdminGiftController) Get() mvc.Result {
-	dataList := c.ServiceGift.GetAll(true)
+	dataList := c.ServiceGift.GetAll(false)
 	total := len(dataList)
 	for i, giftInfo := range dataList {
 		//奖品发放的计划数据
@@ -46,6 +46,9 @@ func (c *AdminGiftController) Get() mvc.Result {
 				dataList[i].PrizeData = "[]"
 			}
 		}
+		// 奖品当前的奖品池数量
+		num := utils.GetGiftPoolNum(giftInfo.Id)
+		dataList[i].Title = fmt.Sprintf("【%d】%s", num, dataList[i].Title)
 	}
 	return mvc.View{
 		Name: "admin/gift.html",
