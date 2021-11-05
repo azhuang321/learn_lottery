@@ -6,6 +6,7 @@ import (
 	"github.com/kataras/iris/v12/middleware/logger"
 	"github.com/kataras/iris/v12/middleware/recover"
 	"lottery/conf"
+	"lottery/cron"
 	"time"
 )
 
@@ -74,7 +75,7 @@ func (b *Bootstrapper) Configure(cs ...Configurator) {
 }
 
 func (b *Bootstrapper) setupCron() {
-	//todo
+	cron.ConfigueAppOneCron()
 }
 
 const (

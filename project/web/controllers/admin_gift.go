@@ -7,6 +7,7 @@ import (
 	"github.com/kataras/iris/v12/mvc"
 	"lottery/comm"
 	"lottery/models"
+	"lottery/web/utils"
 	"lottery/web/viewmodels"
 	"time"
 
@@ -124,10 +125,12 @@ func (c *AdminGiftController) PostSave() mvc.Result {
 			if giftInfo.LeftNum < 0 || giftInfo.PrizeNum <= 0 {
 				giftInfo.LeftNum = 0
 			}
-			//todo:
+			// 奖品总数发生变化
+			utils.ResetGiftPrizeData(&giftInfo, c.ServiceGift)
 		}
 		if dataInfo.PrizeTime != giftInfo.PrizeTime {
-			//todo: 发奖周期变化
+			// 发奖周期变化
+			utils.ResetGiftPrizeData(&giftInfo, c.ServiceGift)
 		}
 		giftInfo.SysUpdated = int(time.Now().Unix())
 		c.ServiceGift.Update(&giftInfo, []string{""})
@@ -140,6 +143,8 @@ func (c *AdminGiftController) PostSave() mvc.Result {
 		giftInfo.SysIp = comm.ClientIp(c.Ctx.Request())
 		giftInfo.SysCreated = int(time.Now().Unix())
 		c.ServiceGift.Create(&giftInfo)
+		// 新的奖品,更新奖品的发奖计划
+		utils.ResetGiftPrizeData(&giftInfo, c.ServiceGift)
 	}
 
 	return mvc.Response{
