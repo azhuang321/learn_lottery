@@ -7,6 +7,7 @@ import (
 	"lottery/comm"
 	"lottery/models"
 	"lottery/services"
+	"lottery/web/utils"
 	"strings"
 )
 
@@ -26,10 +27,12 @@ func (c *AdminCodeController) Get() mvc.Result {
 	size := 100
 	pagePrev := ""
 	pageNext := ""
+	var num, cacheNum int
 	// 数据列表
 	var datalist []models.LtCode
 	if giftId > 0 {
 		datalist = c.ServiceCode.Search(giftId)
+		num, cacheNum = utils.GetCacheCodeNum(giftId, c.ServiceCode)
 	} else {
 		datalist = c.ServiceCode.GetAll(page, size)
 	}
@@ -56,6 +59,8 @@ func (c *AdminCodeController) Get() mvc.Result {
 			"Total":    total,
 			"PagePrev": pagePrev,
 			"PageNext": pageNext,
+			"CodeNum":  num,
+			"CacheNum": cacheNum,
 		},
 		Layout: "admin/layout.html",
 	}
@@ -85,8 +90,14 @@ func (c *AdminCodeController) PostImport() {
 			if err != nil {
 				errNum++
 			} else {
-				// todo:成功导入数据库，还需要导入到缓存中
+				// 成功导入数据库，还需要导入到缓存中
 				sucNum++
+				ok := utils.ImportCacheCodes(giftId, code)
+				if ok {
+					sucNum++
+				} else {
+					errNum++
+				}
 			}
 		}
 	}
@@ -119,4 +130,20 @@ func (c *AdminCodeController) GetReset() mvc.Result {
 	return mvc.Response{
 		Path: refer,
 	}
+}
+
+func (c *AdminCodeController) GetRecache() {
+	refer := c.Ctx.GetHeader("Referer")
+	if refer == "" {
+		refer = "/admin/code"
+	}
+	id, err := c.Ctx.URLParamInt("id")
+	if id < 1 || err != nil {
+		rs := fmt.Sprintf("没有指定优惠券所属的奖品id,<a> href='%s'>优惠券</a>", refer)
+		c.Ctx.HTML(rs)
+		return
+	}
+	suchNum, errNum := utils.RecacheCodes(id, c.ServiceCode)
+	rs := fmt.Sprintf("sucNum=%d,errNum=%d, <a href='%s'></a>", suchNum, errNum, refer)
+	c.Ctx.HTML(rs)
 }
